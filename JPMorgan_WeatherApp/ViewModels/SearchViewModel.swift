@@ -13,7 +13,7 @@ final class SearchViewModel: ObservableObject {
     @Published private(set) var currentWeatherViewModel: CurrentWeatherViewModel?
     @Published private(set) var isSearching = false
     private var searchTask: Task<Void, Never>?
-     var weatherFetchable: WeatherFetchable
+    private let weatherFetchable: WeatherFetchable
     
     init(weatherFetchable: WeatherFetchable) {
         self.weatherFetchable = weatherFetchable
