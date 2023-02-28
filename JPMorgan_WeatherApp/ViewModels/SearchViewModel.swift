@@ -10,7 +10,7 @@ import Combine
 import CoreLocation
 
 final class SearchViewModel: ObservableObject {
-    @Published var searchText: String = UserDefaults.standard.string(forKey: AppUserDefaultKeys.lastSearch) ?? ""
+    @Published var searchText: String = ""
     @Published private(set) var currentWeatherViewModel: CurrentWeatherViewModel?
     @Published private(set) var isSearching = false
     private var searchTask: Task<Void, Never>?
@@ -20,11 +20,13 @@ final class SearchViewModel: ObservableObject {
         self.weatherFetchable = weatherFetchable
         
         $searchText
+            .dropFirst()
             .debounce(for: 0.8, scheduler: DispatchQueue.main)
             .removeDuplicates()
+            .filter { !$0.isEmpty }
             .handleEvents(receiveOutput: { output in
                 self.isSearching = true
-                UserDefaults.standard.set(self.searchText, forKey: AppUserDefaultKeys.lastSearch)
+                UserDefaults.standard.set(output, forKey: AppUserDefaultKeys.lastSearch)
             })
             .flatMap { value in
                 Future { promise in
@@ -46,6 +48,7 @@ final class SearchViewModel: ObservableObject {
     }
     
     private func search(matching searchTerm: String) async -> CurrentWeather? {
+        guard !searchTerm.isEmpty else { return nil }
         let currentSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
         do {
             let current = try await weatherFetchable.getWeather(for: currentSearchTerm)
@@ -58,6 +61,7 @@ final class SearchViewModel: ObservableObject {
     
     @MainActor
     func search() async {
+        guard !searchText.isEmpty else { return }
         searchTask?.cancel()
         let currentSearchTerm = searchText.trimmingCharacters(in: .whitespaces)
         if currentSearchTerm.isEmpty {
@@ -81,6 +85,7 @@ final class SearchViewModel: ObservableObject {
     
     @MainActor
     func search(location: CLLocation) async {
+        searchText = ""
         searchTask?.cancel()
         searchTask = Task {
             isSearching = true

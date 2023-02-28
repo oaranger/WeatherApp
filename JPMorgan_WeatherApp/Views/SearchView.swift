@@ -31,6 +31,9 @@ struct SearchView: View {
                             text: $searchViewModel.searchText,
                             placement: .navigationBarDrawer(displayMode: .always)
                         )
+                        .onAppear {
+                            searchViewModel.searchText = UserDefaults.standard.string(forKey: AppUserDefaultKeys.lastSearch) ?? ""
+                        }
                     
                     Spacer()
                     CurrentWeatherView(viewModel: searchViewModel.currentWeatherViewModel)
@@ -38,7 +41,6 @@ struct SearchView: View {
                         if locationManager.locationIsDisabled {
                             locationManager.requestWhenInUseAuthorization()
                         } else {
-                            searchViewModel.searchText = ""
                             Task {
                                 await searchViewModel.search(location: locationManager.lastSeenLocation)
                             }
