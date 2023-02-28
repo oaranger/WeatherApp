@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct AsyncImageWithCache: View {
-    private var imageUrlString: String = "https://openweathermap.org/img/wn/"
+    private var imageUrlString: String = APIConstants.iconBaseURL
     private let cache = ImageCache.shared
     private let iconURLExtension = "@2x.png"
 
