@@ -24,6 +24,7 @@ final class SearchViewModel: ObservableObject {
             .removeDuplicates()
             .handleEvents(receiveOutput: { output in
                 self.isSearching = true
+                UserDefaults.standard.set(self.searchText, forKey: AppUserDefaultKeys.lastSearch)
             })
             .flatMap { value in
                 Future { promise in
