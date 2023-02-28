@@ -31,11 +31,6 @@ struct SearchView: View {
                             text: $searchViewModel.searchText,
                             placement: .navigationBarDrawer(displayMode: .always)
                         )
-                        .onReceive(searchViewModel.$searchText) { _ in
-                            Task {
-                                await searchViewModel.search()
-                            }
-                        }
                     
                     Spacer()
                     CurrentWeatherView(viewModel: searchViewModel.currentWeatherViewModel)

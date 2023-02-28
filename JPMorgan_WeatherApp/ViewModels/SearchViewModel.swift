@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 import CoreLocation
 
 final class SearchViewModel: ObservableObject {
@@ -17,6 +18,41 @@ final class SearchViewModel: ObservableObject {
     
     init(weatherFetchable: WeatherFetchable) {
         self.weatherFetchable = weatherFetchable
+        
+        $searchText
+            .debounce(for: 0.8, scheduler: DispatchQueue.main)
+            .removeDuplicates()
+            .handleEvents(receiveOutput: { output in
+                self.isSearching = true
+            })
+            .flatMap { value in
+                Future { promise in
+                    Task {
+                        let current = await self.search(matching: value)
+                        if let current = current {
+                            promise(.success(current))
+                        }
+                    }
+                }
+            }
+            .receive(on: DispatchQueue.main)
+            .eraseToAnyPublisher()
+            .handleEvents(receiveOutput: { output in
+                self.isSearching = false
+            })
+            .compactMap {CurrentWeatherViewModel(currentWeather: $0)}
+            .assign(to: &$currentWeatherViewModel)
+    }
+    
+    private func search(matching searchTerm: String) async -> CurrentWeather? {
+        let currentSearchTerm = searchTerm.trimmingCharacters(in: .whitespaces)
+        do {
+            let current = try await weatherFetchable.getWeather(for: currentSearchTerm)
+            return current
+        } catch {
+            print(error.localizedDescription)
+        }
+        return nil
     }
     
     @MainActor
@@ -29,12 +65,12 @@ final class SearchViewModel: ObservableObject {
             searchTask = Task {
                 isSearching = true
                 do {
-                    let currentWeather = try await weatherFetchable.getWeather(for: searchText)
+                    let currentWeather = try await weatherFetchable.getWeather(for: currentSearchTerm)
                     currentWeatherViewModel = CurrentWeatherViewModel(currentWeather: currentWeather)
                 } catch {
                     print(error.localizedDescription)
                 }
-                UserDefaults.standard.set(searchText, forKey: AppUserDefaultKeys.lastSearch)
+                UserDefaults.standard.set(currentSearchTerm, forKey: AppUserDefaultKeys.lastSearch)
                 if !Task.isCancelled {
                     isSearching = false
                 }
